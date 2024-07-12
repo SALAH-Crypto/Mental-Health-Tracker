@@ -1,0 +1,145 @@
+// AuthContext.js
+import React, { createContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+
+const AuthContext = createContext();
+
+const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+
+  const login = async (email, password) => {
+    const response = await axios.post('http://localhost:3000/login', {
+      email,
+      password,
+    });
+    const { token } = response.data;
+    await AsyncStorage.setItem('token', token);
+    setUser({ email });
+  };
+
+  const logout = async () => {
+    await AsyncStorage.removeItem('token');
+    setUser(null);
+  };
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const token = await AsyncStorage.getItem('token');
+      if (token) {
+        setUser({ email: 'user@example.com' }); // Simplified for example purposes
+      }
+    };
+    loadUser();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export { AuthContext, AuthProvider };
+
+// MoodTracker.js
+import React, { useState } from 'react';
+import { Button, TextInput, View, Text } from 'react-native';
+import axios from 'axios';
+import { AuthContext } from './AuthContext';
+
+const MoodTracker = () => {
+  const [mood, setMood] = useState('');
+  const { user } = React.useContext(AuthContext);
+
+  const handleSaveMood = async () => {
+    const token = await AsyncStorage.getItem('token');
+    await axios.post('http://localhost:3000/mood', {
+      token,
+      mood,
+      date: new Date(),
+    });
+    setMood('');
+  };
+
+  return (
+    <View>
+      <TextInput
+        placeholder="Enter your mood"
+        value={mood}
+        onChangeText={setMood}
+      />
+      <Button title="Save Mood" onPress={handleSaveMood} />
+    </View>
+  );
+};
+
+export default MoodTracker;
+
+// Journal.js
+import React, { useState } from 'react';
+import { Button, TextInput, View } from 'react-native';
+import axios from 'axios';
+import { AuthContext } from './AuthContext';
+
+const Journal = () => {
+  const [content, setContent] = useState('');
+  const { user } = React.useContext(AuthContext);
+
+  const handleSaveJournal = async () => {
+    const token = await AsyncStorage.getItem('token');
+    await axios.post('http://localhost:3000/journal', {
+      token,
+      content,
+      date: new Date(),
+    });
+    setContent('');
+  };
+
+  return (
+    <View>
+      <TextInput
+        placeholder="Write your journal entry"
+        value={content}
+        onChangeText={setContent}
+      />
+      <Button title="Save Journal" onPress={handleSaveJournal} />
+    </View>
+  );
+};
+
+export default Journal;
+
+// Consultation.js
+import React, { useState } from 'react';
+import { Button, TextInput, View } from 'react-native';
+import axios from 'axios';
+import { AuthContext } from './AuthContext';
+
+const Consultation = () => {
+  const [description, setDescription] = useState('');
+  const { user } = React.useContext(AuthContext);
+
+  const handleScheduleConsultation = async () => {
+    const token = await AsyncStorage.getItem('token');
+    await axios.post('http://localhost:3000/consultation', {
+      token,
+      date: new Date(),
+      description,
+    });
+    setDescription('');
+  };
+
+  return (
+    <View>
+      <TextInput
+        placeholder="Describe your issue"
+        value={description}
+        onChangeText={setDescription}
+      />
+      <Button title="Schedule Consultation" onPress={handleScheduleConsultation} />
+    </View>
+  );
+};
+
+export default Consultation;
